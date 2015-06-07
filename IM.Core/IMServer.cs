@@ -16,20 +16,45 @@ namespace IM.Core
         /// </summary>
         public int Port { get; set; }
 
+        /// <summary>
+        /// 监听连接请求线程
+        /// </summary>
         public Thread ListenThread { get; set; }
+
+        /// <summary>
+        /// 监听socket
+        /// </summary>
         public Socket Listener { get; set; }
 
-        public List<ConnectionSocket> ClientList { get; set; }
+        /// <summary>
+        /// socket 连接列表
+        /// </summary>
+        public List<ConnectionSocket> Clients { get; set; }
 
+        /// <summary>
+        /// 是否关闭（用于结束线程）
+        /// </summary>
         public bool Closed { get; set; }
+
+        /// <summary>
+        /// 接受消息事件
+        /// </summary>
+        public event ReciveMessageDelegate OnReciveMessage;
+
+        /// <summary>
+        /// 连接到服务器
+        /// </summary>
+        public event ConnectServerDelegate OnConnectServer;
 
         public IMServer()
         {
             try
             {
-                Port = 8080;
+
+
+                Port = 9090;
                 Closed = false;
-                ClientList = new List<ConnectionSocket>();
+                Clients = new List<ConnectionSocket>();
                 Listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 Listener.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), Port));
                 Listener.Listen(10);
@@ -38,11 +63,10 @@ namespace IM.Core
                 ListenThread.IsBackground = true;
                 ListenThread.Start();
             }
-            catch(Exception err)
+            catch
             {
 
             }
-
         }
 
         protected void Listen()
@@ -50,25 +74,58 @@ namespace IM.Core
             while (!Closed)
             {
                 Socket socket = Listener.Accept();
-                this.AddConnection(socket);
+
+                var conn = this.AddConnection(socket);
+
             }
 
         }
 
-        public virtual void AddConnection(Socket socket)
+
+        public void ConnectServer(ConnectionSocket clientSocket)
+        {
+            if (OnConnectServer != null)
+            {
+                OnConnectServer(clientSocket);
+            }
+        }
+
+        public void ReciveMessage(Message message)
+        {
+            if (null != OnReciveMessage)
+            {
+                OnReciveMessage(message);
+            }
+        }
+
+        public virtual ConnectionSocket AddConnection(Socket socket)
         {
             ConnectionSocket conn = new ConnectionSocket(this, socket);
-            this.ClientList.Add(conn);
+            this.Clients.Add(conn);
+            return conn;
         }
 
         public void AddConnection(ConnectionSocket conn)
         {
-            this.ClientList.Add(conn);
+            this.Clients.Add(conn);
         }
 
         public void RemoveConnection(ConnectionSocket conn)
         {
-            this.ClientList.Remove(conn);
+            this.Clients.Remove(conn);
+        }
+
+
+        public ConnectionSocket GetConnection(string ID)
+        {
+           var socket =  Clients.FirstOrDefault(m=>m.ID==ID);
+           return socket;
+        }
+
+        public void SendMessage(Message message)
+        {
+            var toUser = GetConnection(message.Reciver);
+            toUser.SendMessage(message);
         }
 
         public void Close()

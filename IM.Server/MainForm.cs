@@ -21,7 +21,30 @@ namespace IM.Server
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            Server = new XmppServer(richTextBox1);
+            Server = new IM.Core.IMServer();
+            //注册接受消息事件
+            Server.OnReciveMessage+=Server_OnReciveMessage;
+
+            Server.OnConnectServer += Server_OnConnectServer;
+            
+        }
+
+        void Server_OnConnectServer(Core.ConnectionSocket client)
+        {
+            listBox1.Items.Add(client.ID);
+        }
+
+        public void Server_OnReciveMessage(IM.Core.Message Message)
+        {
+            if (Message.MsgType == Core.MessageType.SetID)
+            {
+                this.richTextBox1.AppendText(Message.Sender + "上线\n");
+            }
+            else
+            {
+                this.richTextBox1.AppendText(Message.Sender+":"+Message.Content + "\n");
+            }
+            
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)

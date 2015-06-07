@@ -18,22 +18,40 @@ namespace IM.Client
         public ClientForm()
         {
             InitializeComponent();
+            Control.CheckForIllegalCrossThreadCalls = false;
         }
 
         private void ClientForm_Load(object sender, EventArgs e)
         {
-            ClientSocket = new Core.ClientSocket(IPAddress.Parse("127.0.0.1"), 8080);
+           
+        }
 
+        private void ClientSocket_OnReciveMessage(IM.Core.Message message)
+        {
+            this.richTextBox1.AppendText(message.Content+"\n");
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            string msgSend = textBox1 .Text.Trim();
-            byte[] orgByte = Encoding.UTF8.GetBytes(msgSend);
-            byte[] finalByte = new byte[orgByte.Length + 1];
-            finalByte[0] = 0;
-            Buffer.BlockCopy(orgByte, 0, finalByte, 1, orgByte.Length);
-            ClientSocket.SendMessage(finalByte);
+            ClientSocket.SendTextMessage(textBox3.Text.Trim(), textBox1.Text.Trim());
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(textBox2.Text))
+            {
+                MessageBox.Show("请输入用户名");
+                return;
+            }
+            ClientSocket = new Core.ClientSocket(IPAddress.Parse("127.0.0.1"), 9090);
+            ClientSocket.OnReciveMessage +=ClientSocket_OnReciveMessage;
+            ClientSocket.OnConnectComplate += ClientSocket_OnConnectComplate;
+        }
+
+        private void ClientSocket_OnConnectComplate(Core.ClientSocket clientSocket)
+        {
+            string username = textBox2.Text.Trim();
+            clientSocket.SetID(username);
         }
     }
 }
